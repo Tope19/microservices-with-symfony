@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+    postgres:
+        image: postgres:13
+        environment:
+            POSTGRES_DB: app
+            POSTGRES_USER: symfony
+            POSTGRES_PASSWORD: password
+        ports:
+            - '5432:5432'
+        volumes:
+            - postgres_data:/var/lib/postgresql/data
+
+    redis:
+        image: redis:latest
+        container_name: redis
+        ports:
+            - "6379:6379"
+
+    users:
+        build:
+            context: ./users
+            dockerfile: Dockerfile
+        container_name: "users-service"
+        ports:
+            - "8000:80"
+        depends_on:
+            - postgres
+            - redis
+        environment:
+            DATABASE_URL: postgresql://symfony:password@postgres:5432/app?serverVersion=16&charset=utf8
+            MESSENGER_TRANSPORT_DSN: redis://:password@redis:6379/microservices
+
+    notifications:
+        build:
+            context: ./notifications
+            dockerfile: Dockerfile
+        container_name: "notifications-service"
+        ports:
+            - "8001:80"
+        depends_on:
+            - redis
+        environment:
+            MESSENGER_TRANSPORT_DSN: redis://:password@redis:6379/microservices
+
+
+
+volumes:
+    postgres_data:
